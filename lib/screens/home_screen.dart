@@ -57,7 +57,7 @@ class TransactionsPage extends StatelessWidget {
   @override Widget build(BuildContext context) => FutureBuilder<List<Map<String,Object?>>>(future: AzarDb.instance.rows('transactions', where: 'is_void=0'), builder: (context,s) {
     if (!s.hasData) return const Center(child: CircularProgressIndicator());
     if (s.data!.isEmpty) return const Center(child: Text('هنوز سندی ثبت نشده است.'));
-    return ListView.builder(padding: const EdgeInsets.all(12), itemCount: s.data!.length, itemBuilder: (_,i) { final r=s.data![i]; final sale=r['kind']=='sale'; return Card(child: ListTile(leading: CircleAvatar(backgroundColor: sale?Colors.green.shade50:Colors.orange.shade50, child: Icon(sale?Icons.north_east:Icons.south_west, color: sale?Colors.green:Colors.deepOrange)), title: Text('${sale?'فروش':'خرید'} • ${r['material']??'مصالح'}'), subtitle: Text('تاریخ: ${r['date']}  |  تناژ: ${r['net_ton']} تن'), trailing: Text(money(r['final_amount']), style: const TextStyle(fontWeight: FontWeight.bold))); });
+    return ListView.builder(padding: const EdgeInsets.all(12), itemCount: s.data!.length, itemBuilder: (_,i) { final r=s.data![i]; final sale=r['kind']=='sale'; return Card(child: ListTile(leading: CircleAvatar(backgroundColor: sale?Colors.green.shade50:Colors.orange.shade50, child: Icon(sale?Icons.north_east:Icons.south_west, color: sale?Colors.green:Colors.deepOrange)), title: Text('${sale?'فروش':'خرید'} • ${r['material']??'مصالح'}'), subtitle: Text('تاریخ: ${r['date']}  |  تناژ: ${r['net_ton']} تن'), trailing: Text(money(r['final_amount']), style: const TextStyle(fontWeight: FontWeight.bold)))); });
   });
 }
 
