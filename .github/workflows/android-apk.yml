@@ -39,8 +39,7 @@ jobs:
       # نصب SDK نسخه 36
       - name: Install Android SDK Platform 36
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-36"
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
 
       # تنظیم compileSdk روی نسخه 36
       - name: Set compileSdk to 36
