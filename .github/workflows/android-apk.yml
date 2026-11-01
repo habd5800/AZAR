@@ -28,6 +28,70 @@ jobs:
       - name: Create Android files
         run: flutter create . --platforms=android --org ir.azar --project-name azar
 
+      - name: Install Android SDK Platform 36
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-36"
+
+      - name: Set compileSdk to 36
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          candidates = [
+              Path("android/app/build.gradle.kts"),
+              Path("android/app/build.gradle"),
+          ]
+
+          gradle_file = next(
+              (path for path in candidates if path.exists()),
+              None
+          )
+
+          if gradle_file is None:
+              raise SystemExit("Android Gradle file not found")
+
+          content = gradle_file.read_text()
+
+          patterns = [
+              (
+                  r'compileSdk\s*=\s*flutter\.compileSdkVersion',
+                  'compileSdk = 36'
+              ),
+              (
+                  r'compileSdkVersion\s+flutter\.compileSdkVersion',
+                  'compileSdkVersion 36'
+              ),
+              (
+                  r'compileSdk\s+flutter\.compileSdkVersion',
+                  'compileSdk 36'
+              ),
+          ]
+
+          for pattern, replacement in patterns:
+              content, count = re.subn(
+                  pattern,
+                  replacement,
+                  content
+              )
+
+              if count:
+                  gradle_file.write_text(content)
+                  print("compileSdk successfully set to 36")
+                  break
+          else:
+              if re.search(
+                  r'compileSdk(?:Version)?\s*(?:=\s*)?36\b',
+                  content
+              ):
+                  print("compileSdk is already 36")
+              else:
+                  raise SystemExit(
+                      "Could not update compileSdk automatically"
+                  )
+          PY
+
       - name: Get dependencies
         run: flutter pub get
 
