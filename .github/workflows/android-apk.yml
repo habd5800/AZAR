@@ -11,45 +11,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # دریافت سورس پروژه
       - name: Get project
         uses: actions/checkout@v4
 
+      # نصب Java
       - name: Install Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+      # نصب Flutter
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
+      # ایجاد فایل‌های اندروید
       - name: Create Android files
         run: flutter create . --platforms=android --org ir.azar --project-name azar
 
+      # راه‌اندازی Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # نصب SDK نسخه 36
       - name: Install Android SDK Platform 36
         run: |
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-36"
 
+      # تنظیم compileSdk روی نسخه 36
       - name: Set compileSdk to 36
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
 
-          candidates = [
-              Path("android/app/build.gradle.kts"),
-              Path("android/app/build.gradle"),
-          ]
+          gradle_file = Path("android/app/build.gradle.kts")
 
-          gradle_file = next(
-              (path for path in candidates if path.exists()),
-              None
-          )
+          if not gradle_file.exists():
+              gradle_file = Path("android/app/build.gradle")
 
-          if gradle_file is None:
+          if not gradle_file.exists():
               raise SystemExit("Android Gradle file not found")
 
           content = gradle_file.read_text()
@@ -69,6 +74,8 @@ jobs:
               ),
           ]
 
+          updated = False
+
           for pattern, replacement in patterns:
               content, count = re.subn(
                   pattern,
@@ -77,30 +84,35 @@ jobs:
               )
 
               if count:
-                  gradle_file.write_text(content)
-                  print("compileSdk successfully set to 36")
+                  updated = True
                   break
-          else:
-              if re.search(
+
+          if not updated:
+              if not re.search(
                   r'compileSdk(?:Version)?\s*(?:=\s*)?36\b',
                   content
               ):
-                  print("compileSdk is already 36")
-              else:
                   raise SystemExit(
-                      "Could not update compileSdk automatically"
+                      "Could not update compileSdk to 36"
                   )
+
+          gradle_file.write_text(content)
+          print("compileSdk successfully set to 36")
           PY
 
+      # دریافت وابستگی‌ها
       - name: Get dependencies
         run: flutter pub get
 
+      # ساخت APK
       - name: Build APK
         run: flutter build apk --debug
 
+      # ذخیره خروجی APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: AZAR-APK
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
+          retention-days: 7
