@@ -41,7 +41,7 @@ jobs:
         run: |
           sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
 
-      # تنظیم قطعی compileSdk روی نسخه 36
+      # تنظیم compileSdk برنامه روی نسخه 36
       - name: Set compileSdk to 36
         run: |
           python3 - <<'PY'
@@ -75,37 +75,76 @@ jobs:
           )
 
           if count == 0:
-              raise SystemExit(
-                  "ERROR: Could not find compileSdk setting"
-              )
+              raise SystemExit("Could not find compileSdk setting")
 
           gradle_file.write_text(updated)
 
-          print("Updated file:", gradle_file)
-          print("compileSdk successfully set to 36")
-
-          for line in updated.splitlines():
-              if "compileSdk" in line:
-                  print(line)
-
-          if not re.search(
-              r'(?m)^\s*compileSdk(?:Version)?\s*(?:=\s*)?36\b',
-              updated
-          ):
-              raise SystemExit(
-                  "ERROR: compileSdk verification failed"
-              )
+          print("Updated:", gradle_file)
+          print("compileSdk set to 36")
           PY
 
       # دریافت وابستگی‌ها
       - name: Get dependencies
         run: flutter pub get
 
-      # بررسی تنظیمات قبل از ساخت APK
+      # اصلاح compileSdk افزونه‌های اندروید
+      - name: Fix plugin compileSdk to 36
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          pub_cache = Path.home() / ".pub-cache" / "hosted" / "pub.dev"
+
+          if not pub_cache.exists():
+              raise SystemExit("Pub cache not found")
+
+          changed = []
+
+          for gradle_file in pub_cache.glob("*/android/build.gradle*"):
+              content = gradle_file.read_text()
+
+              updated = re.sub(
+                  r'(?m)^(\s*compileSdkVersion\s+)34\b',
+                  r'\g<1>36',
+                  content
+              )
+
+              updated = re.sub(
+                  r'(?m)^(\s*compileSdk\s*=\s*)34\b',
+                  r'\g<1>36',
+                  updated
+              )
+
+              updated = re.sub(
+                  r'(?m)^(\s*compileSdk\s+)34\b',
+                  r'\g<1>36',
+                  updated
+              )
+
+              if updated != content:
+                  gradle_file.write_text(updated)
+                  changed.append(str(gradle_file))
+
+          print("Modified plugin Gradle files:")
+
+          for file in changed:
+              print(file)
+
+          print("Plugin compileSdk correction completed.")
+          PY
+
+      # بررسی تنظیمات اندروید
       - name: Verify Android configuration
         run: |
-          echo "Checking Android Gradle configuration..."
+          echo "Checking main application:"
           grep -n "compileSdk" android/app/build.gradle* || true
+
+          echo "Checking file_picker:"
+          find "$HOME/.pub-cache/hosted/pub.dev" \
+            -path "*/file_picker-*/android/build.gradle*" \
+            -exec grep -n "compileSdk" {} \; || true
+
           echo "Flutter version:"
           flutter --version
 
