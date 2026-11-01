@@ -34,7 +34,7 @@ jobs:
 
       # راه‌اندازی Android SDK
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v۴
+        uses: android-actions/setup-android@v4
 
       # نصب SDK نسخه 36
       - name: Install Android SDK Platform 36
